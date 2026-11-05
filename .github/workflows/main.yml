@@ -1,0 +1,36 @@
+name: Build
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - loader: fabric
+            gradle: 8.11.1
+          - loader: forge
+            gradle: 8.8
+          - loader: neoforge
+            gradle: 8.11.1
+    steps:
+      - uses: actions/checkout@v4
+      - run: unzip -q allitemsop.zip -d src
+      - name: Fix import
+        run: sed -i 's/net\.minecraft\.world\.level\.block\.MovingPistonBlock/net.minecraft.world.level.block.piston.MovingPistonBlock/' src/*/src/main/java/com/allitemsop/Common.java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ matrix.gradle }}
+      - name: Build ${{ matrix.loader }}
+        working-directory: src/${{ matrix.loader }}
+        run: gradle build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: allitemsop-${{ matrix.loader }}
+          path: src/${{ matrix.loader }}/build/libs/*.jar
